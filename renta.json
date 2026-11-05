@@ -1,0 +1,212 @@
+use("renta_videos");
+
+db.createCollection("clientes");
+db.createCollection("peliculas");
+db.createCollection("empleados");
+db.createCollection("alquileres");
+db.createCollection("devoluciones");
+
+print("Base de datos y colecciones creadas correctamente");
+
+use("renta_videos");
+
+// CLIENTES
+db.clientes.insertMany([
+  {
+    _id: 1,
+    nombre: "Juan Perez",
+    telefono: "70012345",
+    correo: "juan@gmail.com",
+    direccion: "La Paz"
+  },
+  {
+    _id: 2,
+    nombre: "Maria Lopez",
+    telefono: "70123456",
+    correo: "maria@gmail.com",
+    direccion: "Cochabamba"
+  }
+]);
+
+// PELICULAS
+db.peliculas.insertMany([
+  {
+    _id: 1,
+    titulo: "Avengers Endgame",
+    genero: "Accion",
+    anio: 2019,
+    precioAlquiler: 15,
+    disponible: true
+  },
+  {
+    _id: 2,
+    titulo: "Titanic",
+    genero: "Romance",
+    anio: 1997,
+    precioAlquiler: 10,
+    disponible: true
+  },
+  {
+    _id: 3,
+    titulo: "Avatar",
+    genero: "Ciencia Ficcion",
+    anio: 2009,
+    precioAlquiler: 12,
+    disponible: true
+  }
+]);
+
+// EMPLEADOS
+db.empleados.insertMany([
+  {
+    _id: 1,
+    nombre: "Carlos Ramirez",
+    cargo: "Administrador"
+  },
+  {
+    _id: 2,
+    nombre: "Ana Flores",
+    cargo: "Atencion al cliente"
+  }
+]);
+
+// ALQUILERES
+db.alquileres.insertMany([
+  {
+    _id: 1,
+    clienteId: 1,
+    peliculaId: 1,
+    empleadoId: 1,
+    fechaAlquiler: ISODate("2026-11-01"),
+    fechaVencimiento: ISODate("2026-11-05"),
+    estado: "Alquilado",
+    monto: 15
+  },
+  {
+    _id: 2,
+    clienteId: 2,
+    peliculaId: 2,
+    empleadoId: 2,
+    fechaAlquiler: ISODate("2026-11-02"),
+    fechaVencimiento: ISODate("2026-11-06"),
+    estado: "Alquilado",
+    monto: 10
+  }
+]);
+
+// DEVOLUCIONES
+db.devoluciones.insertOne({
+  _id: 1,
+  alquilerId: 1,
+  fechaDevolucion: ISODate("2026-11-04"),
+  retraso: false,
+  multa: 0
+});
+
+print("Datos insertados correctamente");
+
+use("renta_videos");
+
+// 1. Mostrar todos los clientes
+print("LISTA DE CLIENTES");
+db.clientes.find().forEach(printjson);
+
+// 2. Mostrar todas las peliculas
+print("CATALOGO DE PELICULAS");
+db.peliculas.find().forEach(printjson);
+
+// 3. Peliculas disponibles
+print("PELICULAS DISPONIBLES");
+db.peliculas.find({
+  disponible: true
+}).forEach(printjson);
+
+// 4. Buscar peliculas de accion
+print("PELICULAS DE ACCION");
+db.peliculas.find({
+  genero: "Accion"
+}).forEach(printjson);
+
+// 5. Consultar alquileres activos
+print("ALQUILERES ACTIVOS");
+db.alquileres.find({
+  estado: "Alquilado"
+}).forEach(printjson);
+
+// 6. Consultar alquileres de un cliente
+print("ALQUILERES DEL CLIENTE 1");
+db.alquileres.find({
+  clienteId: 1
+}).forEach(printjson);
+
+// 7. Mostrar alquileres con informacion del cliente
+print("ALQUILERES CON DATOS DEL CLIENTE");
+
+db.alquileres.aggregate([
+  {
+    $lookup: {
+      from: "clientes",
+      localField: "clienteId",
+      foreignField: "_id",
+      as: "cliente"
+    }
+  },
+  {
+    $unwind: "$cliente"
+  },
+  {
+    $project: {
+      _id: 1,
+      peliculaId: 1,
+      estado: 1,
+      monto: 1,
+      nombreCliente: "$cliente.nombre"
+    }
+  }
+]).forEach(printjson);
+
+// 8. Total de alquileres por estado
+db.alquileres.aggregate([
+  {
+    $group: {
+      _id: "$estado",
+      cantidad: { $sum: 1 }
+    }
+  }
+]).forEach(printjson);
+
+use("renta_videos");
+
+// Actualizar telefono de un cliente
+db.clientes.updateOne(
+  { _id: 1 },
+  { $set: { telefono: "71112222" } }
+);
+
+// Cambiar disponibilidad de una pelicula
+db.peliculas.updateOne(
+  { _id: 1 },
+  { $set: { disponible: false } }
+);
+
+// Registrar devolucion de alquiler
+db.alquileres.updateOne(
+  { _id: 1 },
+  { $set: { estado: "Devuelto" } }
+);
+
+print("Actualizaciones realizadas correctamente");
+
+use("renta_videos");
+
+// Eliminar un cliente de prueba
+db.clientes.deleteOne({
+  _id: 99
+});
+
+// Eliminar una pelicula de prueba
+db.peliculas.deleteOne({
+  _id: 99
+});
+
+print("Operaciones de eliminacion ejecutadas");
